@@ -20,3 +20,5 @@ It’s useful as a first stage in compiler design for analyzing code syntax.
 1. Compile the program:
    ```bash
    gcc *.c -o lexical_analyzer
+
+---
