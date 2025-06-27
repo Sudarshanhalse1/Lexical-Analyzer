@@ -1,0 +1,19 @@
+#include <stdio.h>
+
+int Sum(int a, int b);
+int main()
+{
+    int num = 01234567;
+    int num=0x01010;
+    float f[];
+    {
+    char str[20] = "LEXICAL ANALYSER";
+    printf("Hello world"
+    );
+    int i = 0;
+    i%+;
+    for (int x = 2; x<5; x++)
+        printf("Hello\n");
+    //char ch = 'ABCD';
+    }
+}

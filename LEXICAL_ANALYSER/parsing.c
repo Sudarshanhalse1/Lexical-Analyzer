@@ -1,0 +1,234 @@
+#include "lexical.h"
+int lineCount = 1;
+int readWord_and_tokenisation(char* file_name)
+{
+    char buffer[MAX_BUFF], ch; // buffer for storing the tokens
+    int alnumericCount = 0, digitCount = 0;
+
+    FILE* fp = fopen(file_name, "r");
+
+    Bracket bracket = {0, 0, 0}; // to keep track for the noraml bracket opening and closing
+    FlowerBracket flowerBracket = {0, 0, 0};
+    SquareBracket squareBracket = {0, 0, 0};
+
+    while ((ch = fgetc(fp))!=EOF)
+    {
+        if(ch == '#' && alnumericCount == 0)
+        {
+            removePreprocessorDirective(fp);  // if the line is a preprocessor directive
+        }
+        if(ch == '/')
+        {
+            if(checkIsComment(fp))
+                continue;
+        }
+
+        if(isalnum(ch) || ch == '_') // if the character is a alphanumeric or the underscore
+        {
+            buffer[alnumericCount++] = ch;
+
+            if(isdigit(ch)) // if it is having the digits 
+            {
+                digitCount++;
+            }
+        }
+        else  // if it is not the alphanumeric or underscore or digits
+        {
+            if(alnumericCount != 0) // buffer is not empty
+            {
+                buffer[alnumericCount] = '\0';
+                alnumericCount = 0;
+
+                if(digitCount == 0) // if it is having the pure alphabets not any digits
+                {
+                    if(isKeyword(buffer)) 
+                    {
+                        printKeyword(buffer);
+                    }
+                    else
+                    {
+                        if(checkIsValidIdentifier(buffer) == FAILURE)
+                        {
+                            //printf("%d---->\n", digitCount);
+                            printf("Error: at line %d INVALID IDENTIFIER (%s)\n", lineCount, buffer);
+                            return FAILURE;
+                        }
+                        printIdentifier(buffer);
+                    }
+                }
+                else
+                {
+                    digitCount = 0;
+                    if(isOnlyDigits(buffer) == SUCCESS)
+                    {
+                        
+                        printNumericConst(buffer);
+                    }
+                    else
+                    {
+                        if(checkIsValidIdentifier(buffer) == FAILURE)
+                        {
+                            printf("Error: at line %d INVALID IDENTIFIER (%s)\n", lineCount, buffer);
+                            return FAILURE;
+                        }
+                        printIdentifier(buffer); // if the idetifier is having the digits
+                    }
+                }
+            }
+        }
+        if(isSpace(ch))
+        {
+            continue;
+        }
+        else if(isOperator(ch))
+        {
+            // need to write the logic for the relational and compound operators
+            char tockenOPerator[4]; 
+            tockenOPerator[0] = ch; 
+            tockenOPerator[1] = '\0';
+            if (isMultiCharacterOperator(ch) == SUCCESS) // for multi character operators
+            {
+                char nextCharacter = fgetc(fp);
+                int flag = 0; 
+                if(ch == '+' || ch == '-')
+                {
+                    if(ch == '+' && (isIncrementOperator(nextCharacter) == SUCCESS))
+                    {
+                        flag = 1;
+                        tockenOPerator[1] = nextCharacter;
+                        tockenOPerator[2] = '\0';
+                    }
+                    else if(ch == '-' && (isDecrementOperator(nextCharacter) == SUCCESS))
+                    {
+                        flag = 1;
+                        tockenOPerator[1] = nextCharacter;
+                        tockenOPerator[2] = '\0';
+                    }
+                }
+                if(isCompoundOperator(nextCharacter) == SUCCESS)
+                {
+                    flag = 1;
+                    tockenOPerator[1] = nextCharacter;
+                    tockenOPerator[2] = '\0';
+                }
+                if(ch == '<' || ch == '>')
+                {
+                    if(ch == '<' && nextCharacter == '<')
+                    {
+                        flag = 1;
+                        tockenOPerator[1] = nextCharacter;
+                        char nextNextCharacter = fgetc(fp);
+                        if(isCompoundOperator(nextNextCharacter) == SUCCESS)
+                        {
+                            tockenOPerator[2] = nextNextCharacter;
+                            tockenOPerator[3] = '\0';
+                        }
+                        else
+                        {
+                            tockenOPerator[2] = '\0';
+                            fseek(fp, -1, SEEK_CUR);
+                        }
+                    }
+                    if(ch == '>' && nextCharacter == '>')
+                    {
+                        flag = 1;
+                        tockenOPerator[1] = nextCharacter;
+                        char nextNextCharacter = fgetc(fp);
+                        if(isCompoundOperator(nextNextCharacter) == SUCCESS)
+                        {
+                            tockenOPerator[2] = nextNextCharacter;
+                            tockenOPerator[3] = '\0';
+                        }
+                        else
+                        {
+                            tockenOPerator[2] = '\0';
+                            fseek(fp, -1, SEEK_CUR);
+                        }
+                        tockenOPerator[2] = '\0';
+                    }
+                }
+                if(flag == 0)
+                    fseek(fp, -1, SEEK_CUR);
+                /*char nextCharacter = fgetc(fp);
+                if(isTwoCharacterOperator(nextCharacter)) // check here is compound operator
+                {
+                    tockenOPerator[1] = nextCharacter;
+                    tockenOPerator[2] = '\0';
+                }
+                else if(isThreeCharacterOperator())
+                {
+                    fseek(fp, -1, SEEK_CUR);
+                }*/
+            }
+            
+            printOperator(tockenOPerator);        
+        }
+        else if(isSymbol(ch))
+        {
+            printSymbol(ch);
+        }
+        else if(ch == '"')
+        {
+            char stringLiteral[200];
+            int count = 0;
+            stringLiteral[count++] = ch;
+            int flag = 0;
+            while((ch = fgetc(fp))!='"')
+            {
+                if(ch == '\\')
+                {
+                    fgetc(fp);
+                    continue;
+                }
+                if(ch == ';') // check is "" closed
+                {
+                    flag = 1;
+                    break;
+                }
+                stringLiteral[count++] = ch;
+            }
+
+            if(flag) // if the "" are not closed at all
+            {
+                printf("ERROR: expected \" at the line %d\n", lineCount);
+                return FAILURE;
+            }
+            stringLiteral[count++] = ch;
+            stringLiteral[count++] = '\0';
+            printStringLiteral(stringLiteral);
+        }
+        else if(ch == '\'')
+        {
+            if(isCharacterConstant(fp)==SUCCESS)
+            {
+                ch = fgetc(fp);
+                if(ch == '\\')
+                {
+                    ch = fgetc(fp);
+                }
+                printCharacterConstant(ch);
+                fgetc(fp); // skipping the last "\'"
+            }
+            else
+            {
+                //if(isOneCharacter(fp)==FAILURE)
+                //{
+                    printf("ERROR: at line %d SYNTAX IS NOT VALID\n", lineCount);
+                    return FAILURE;
+                    //return FAILURE;
+                //}
+            }
+        }
+
+        // this things for error handling
+        if(checkForBrackets(ch, &bracket, &flowerBracket, &squareBracket)==NOT_CLOSED)
+        {
+            return FAILURE;
+        }
+    }
+    if(flowerBracket.openBracketCount != flowerBracket.closeBracketCount)
+    {
+        printf("ERROR: expected '}' at line %d\n", lineCount);
+        return FAILURE;
+    }
+}
