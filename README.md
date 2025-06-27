@@ -1,3 +1,5 @@
+---
+
 # Lexical Analyzer
 
 ## Description
@@ -17,4 +19,4 @@ It’s useful as a first stage in compiler design for analyzing code syntax.
 ## How to Run
 1. Compile the program:
    ```bash
-   gcc lexical_analyzer.c -o lexical_analyzer
+   gcc *.c -o lexical_analyzer
